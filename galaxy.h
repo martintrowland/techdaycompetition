@@ -49,6 +49,7 @@ typedef struct {
   int planetCount;
   int eventCount;
   int waitForPrompt;
+  int seed;
   int turn;
   int max_x;
   int max_y;

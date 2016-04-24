@@ -5,41 +5,64 @@
 // Initialize Game
 //
 void processCommandLine(int argc, char *argv[],galaxyType *galaxy){
-  fprintf(stderr, "argc %d\n",argc);
-  if(argc<7){
-    fprintf(stderr,"usage: galaxy <number of neutral planets> <size x> <size y> <wait for prompt 0/1> <exectuable> <executable Name>...");
-    exit(-1);
-  }else{
-    sscanf(argv[1],"%d",&(galaxy->planetCount));
-    sscanf(argv[2],"%d",&(galaxy->max_x));
-    sscanf(argv[3],"%d",&(galaxy->max_y));
-    sscanf(argv[4],"%d",&(galaxy->waitForPrompt));
-
-    galaxy->playerCount=0;
-    galaxy->eventCount=0;
-    int i;
-    for(i=5; i<argc; i+=2){
-      sprintf(galaxy->player[galaxy->playerCount].exec,"%s %s",argv[i],argv[i+1]);
-      (galaxy->playerCount)++;
-
-      fprintf(stderr, "[%s]\n",galaxy->player[galaxy->playerCount].exec);
-
-      if(galaxy->playerCount>=MAX_PLAYERS){
-	fprintf(stderr,"ERROR: To many players. Only %d are supported\n",
-		MAX_PLAYERS);
+  int i;
+  galaxy->max_x=5;
+  galaxy->max_y=5;
+  galaxy->seed=time(NULL);
+  galaxy->planetCount=0;
+  galaxy->waitForPrompt=FALSE;
+  for(i=0; i<argc; i++){
+    if(!strncmp(argv[i],"-x",2)){
+      if(sscanf(argv[++i],"%d",&(galaxy->max_x))!=1){
+	fprintf(stderr,"BAD -x option\n");
 	exit(-1);
       }
+    }else if(!strncmp(argv[i],"-y",2)){
+      if(sscanf(argv[++i],"%d",&(galaxy->max_y))!=1){
+	fprintf(stderr,"BAD -y option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-neutrals",9)){
+      if(sscanf(argv[++i],"%d",&(galaxy->planetCount))!=1){
+	fprintf(stderr,"BAD -neutrals option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-seed",5)){
+      if(sscanf(argv[++i],"%d",&(galaxy->seed))!=1){
+	fprintf(stderr,"BAD -seed option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-prompt",7)){
+      galaxy->waitForPrompt=TRUE;
+    }else if(!strncmp(argv[i],"-help",5)){
+      fprintf(stderr,"usage: galaxy -neutrals # -x # -y # -bots <exectuable> <executable Name>...");
+      exit(-1);
+    }else if(!strncmp(argv[i],"-bots",5)){
+      break;
     }
-    galaxy->planetCount+=galaxy->playerCount;
-    if(galaxy->planetCount>=MAX_PLANETS){
-      fprintf(stderr,"ERROR: To many planets. Only %d are supported\n",
-	      MAX_PLANETS);
+  }
+  galaxy->playerCount=0;
+  for(i++; i<argc; i+=2){
+    sprintf(galaxy->player[galaxy->playerCount].exec,"%s %s",argv[i],argv[i+1]);
+    fprintf(stderr, "[%s]\n",galaxy->player[galaxy->playerCount].exec);
+    (galaxy->playerCount)++;
+    if(galaxy->playerCount>=MAX_PLAYERS){
+      fprintf(stderr,"ERROR: To many players. Only %d are supported\n",
+	      MAX_PLAYERS);
       exit(-1);
     }
-
-    galaxy->turn=1;
-    galaxy->eventCount=0;
   }
+  galaxy->planetCount+=galaxy->playerCount;
+  if(galaxy->planetCount>=MAX_PLANETS){
+    fprintf(stderr,"ERROR: To many planets. Only %d are supported\n",
+	    MAX_PLANETS);
+    exit(-1);
+  }
+  galaxy->turn=1;
+  galaxy->eventCount=0;
+  
+  fprintf(stderr,"x %d y %d planets %d players %d\n",galaxy->max_x,galaxy->max_y,galaxy->planetCount,galaxy->playerCount);
+
 }
 
 //
@@ -76,7 +99,7 @@ void createGalaxy(galaxyType *galaxy){
 
   int i,j,collision;
 
-  srand(time(NULL));
+  srand(galaxy->seed);
 
   for(i=0;i<galaxy->planetCount; i++){
     planetType *p=&(galaxy->planet[i]);

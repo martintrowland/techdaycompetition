@@ -15,7 +15,7 @@ robot: robot.o
 	$(CC) -g -o $@ $^ $(IFLAGS) $(LFLAGS)
 
 run: galaxy robot
-	./galaxy 10 10 5 0 ./robot Nikhil ./robot Daniel ./robot Mark
+	./galaxy -x 10 -y 5 -neutrals 5 -bots ./robot Nikhil ./robot Daniel ./robot Mark
 
 .PHONY: clean
 clean:
