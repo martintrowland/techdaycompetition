@@ -54,7 +54,7 @@ void processCommandLine(int argc, char *argv[],galaxyType *galaxy){
     printf("usage: player <name>");
     exit(1);
   }else{
-    sscanf(argv[1],"%s\n",&(galaxy->playerName));
+    sscanf(argv[1],"%s\n",(char *)&(galaxy->playerName));
   }
 }
 
@@ -79,13 +79,6 @@ void writeLine(char *buf){
   write(1,buf,strlen(buf));
 }
 //
-// Setup
-//
-void setup(galaxyType *galaxy){
-  int i,j,collision;
-  planetType *p=&(galaxy->planet[i]);
-}
-//
 // Read Planet update
 //
 int readPlanetUpdate(galaxyType *galaxy){
@@ -103,12 +96,12 @@ int readPlanetUpdate(galaxyType *galaxy){
   do{
     readLine(buf);
     j=sscanf(buf,"Planet %c Owner %s X %d Y %d Ships %d Prod %d",
-             &(galaxy->planet[i].name),
-             &galaxy->planet[i].owner,
+             (char *)&(galaxy->planet[i].name),
+             (char *)&(galaxy->planet[i].owner),
              &(galaxy->planet[i].x),
              &(galaxy->planet[i].y),
              &(galaxy->planet[i].ships),
-             &( galaxy->planet[ i ].prod ) );
+             &(galaxy->planet[i].prod));
 
     if(j==6){
       i++;

@@ -20,6 +20,9 @@ markbot: markbot.o
 run: galaxy robot
 	./galaxy -x 10 -y 5 -neutrals 5  -bots ./robot Nikhil ./robot Daniel ./robot Mark ./robot Emily
 
+run2: galaxy robot markbot
+	./galaxy -x 10 -y 5 -neutrals 5  -bots ./robot Nikhil ./robot Daniel ./markbot MarkBot ./robot Emily
+
 .PHONY: clean
 clean:
 	rm -f $(obj) $(log) $(exe)
