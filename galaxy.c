@@ -5,41 +5,64 @@
 // Initialize Game
 //
 void processCommandLine(int argc, char *argv[],galaxyType *galaxy){
-  fprintf(stderr, "argc %d\n",argc);
-  if(argc<7){
-    fprintf(stderr,"usage: galaxy <number of neutral planets> <size x> <size y> <wait for prompt 0/1> <exectuable> <executable Name>...");
-    exit(-1);
-  }else{
-    sscanf(argv[1],"%d",&(galaxy->planetCount));
-    sscanf(argv[2],"%d",&(galaxy->max_x));
-    sscanf(argv[3],"%d",&(galaxy->max_y));
-    sscanf(argv[4],"%d",&(galaxy->waitForPrompt));
-
-    galaxy->playerCount=0;
-    galaxy->eventCount=0;
-    int i;
-    for(i=5; i<argc; i+=2){
-      sprintf(galaxy->player[galaxy->playerCount].exec,"%s %s",argv[i],argv[i+1]);
-      (galaxy->playerCount)++;
-
-      fprintf(stderr, "[%s]\n",galaxy->player[galaxy->playerCount].exec);
-
-      if(galaxy->playerCount>=MAX_PLAYERS){
-	fprintf(stderr,"ERROR: To many players. Only %d are supported\n",
-		MAX_PLAYERS);
+  int i;
+  galaxy->max_x=5;
+  galaxy->max_y=5;
+  galaxy->seed=time(NULL);
+  galaxy->planetCount=0;
+  galaxy->waitForPrompt=FALSE;
+  for(i=0; i<argc; i++){
+    if(!strncmp(argv[i],"-x",2)){
+      if(sscanf(argv[++i],"%d",&(galaxy->max_x))!=1){
+	fprintf(stderr,"BAD -x option\n");
 	exit(-1);
       }
+    }else if(!strncmp(argv[i],"-y",2)){
+      if(sscanf(argv[++i],"%d",&(galaxy->max_y))!=1){
+	fprintf(stderr,"BAD -y option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-neutrals",9)){
+      if(sscanf(argv[++i],"%d",&(galaxy->planetCount))!=1){
+	fprintf(stderr,"BAD -neutrals option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-seed",5)){
+      if(sscanf(argv[++i],"%d",&(galaxy->seed))!=1){
+	fprintf(stderr,"BAD -seed option\n");
+	exit(-1);
+      }
+    }else if(!strncmp(argv[i],"-prompt",7)){
+      galaxy->waitForPrompt=TRUE;
+    }else if(!strncmp(argv[i],"-help",5)){
+      fprintf(stderr,"usage: galaxy -neutrals # -x # -y # -bots <exectuable> <executable Name>...");
+      exit(-1);
+    }else if(!strncmp(argv[i],"-bots",5)){
+      break;
     }
-    galaxy->planetCount+=galaxy->playerCount;
-    if(galaxy->planetCount>=MAX_PLANETS){
-      fprintf(stderr,"ERROR: To many planets. Only %d are supported\n",
-	      MAX_PLANETS);
+  }
+  galaxy->playerCount=0;
+  for(i++; i<argc; i+=2){
+    sprintf(galaxy->player[galaxy->playerCount].exec,"%s %s",argv[i],argv[i+1]);
+    fprintf(stderr, "[%s]\n",galaxy->player[galaxy->playerCount].exec);
+    (galaxy->playerCount)++;
+    if(galaxy->playerCount>=MAX_PLAYERS){
+      fprintf(stderr,"ERROR: To many players. Only %d are supported\n",
+	      MAX_PLAYERS);
       exit(-1);
     }
-
-    galaxy->turn=1;
-    galaxy->eventCount=0;
   }
+  galaxy->planetCount+=galaxy->playerCount;
+  if(galaxy->planetCount>=MAX_PLANETS){
+    fprintf(stderr,"ERROR: To many planets. Only %d are supported\n",
+	    MAX_PLANETS);
+    exit(-1);
+  }
+  galaxy->turn=1;
+  galaxy->eventCount=0;
+  
+  fprintf(stderr,"x %d y %d planets %d players %d\n",galaxy->max_x,galaxy->max_y,galaxy->planetCount,galaxy->playerCount);
+
 }
 
 //
@@ -48,7 +71,7 @@ void processCommandLine(int argc, char *argv[],galaxyType *galaxy){
 int launchExectuables(galaxyType *galaxy) {
   int playerIdx;
   for(playerIdx=0;playerIdx<galaxy->playerCount;playerIdx++){
-    printf("exec [%s]\n", galaxy->player[playerIdx].exec);
+    printf("exec [%s]\n", (char *)galaxy->player[playerIdx].exec);
     playerType *p=&(galaxy->player[playerIdx]);
     if(pipe(p->in)) return -1;
     if(pipe(p->out)) return -1;
@@ -76,15 +99,15 @@ void createGalaxy(galaxyType *galaxy){
 
   int i,j,collision;
 
-  srand(time(NULL));
+  srand(galaxy->seed);
 
   for(i=0;i<galaxy->planetCount; i++){
     planetType *p=&(galaxy->planet[i]);
     p->x=(rand()%galaxy->max_x);
     p->y=(rand()%galaxy->max_y);
     p->name=(char)('A'+i);
-    p->prod=(rand()%8+4);
-    p->ownerIdx=NO_OWNER;
+    p->prod=(rand()%7+2);
+    p->ownerIdx=NEUTRAL;
     p->ships=50;
     if(DEBUG){
       printf("planet %c %d %d\n",galaxy->planet[i].name,
@@ -153,7 +176,9 @@ void printEvents(galaxyType *galaxy){
 void updateProduction(galaxyType *galaxy){
   int i;
   for(i=0;i<galaxy->planetCount;i++){
-    galaxy->planet[i].ships+=galaxy->planet[i].prod;
+    if(galaxy->planet[i].ownerIdx!=NEUTRAL){
+      galaxy->planet[i].ships+=galaxy->planet[i].prod;
+    }
   }
 }
 //
@@ -182,13 +207,13 @@ void simulateBattle(galaxyType *galaxy){
   }
   // battle here
   while(attackerShips && defenderShips){
-    if(rand()%2){
+    if((rand()%10)>5){
       --defenderShips;
     }else{
       --attackerShips;
     }
   }
-  if((i=galaxy->planet[galaxy->event[0].targetIdx].ownerIdx)!=NO_OWNER){
+  if((i=galaxy->planet[galaxy->event[0].targetIdx].ownerIdx)!=NEUTRAL){
     name=galaxy->player[galaxy->planet[galaxy->event[0].targetIdx].ownerIdx].name;
   }else{
     name="NEUTRAL";
@@ -281,7 +306,8 @@ int scheduleEvent(galaxyType *galaxy,int playerIdx,
     return(-1);
   }
 
-  if(ships>galaxy->planet[sourceIdx].ships){
+  if((ships>galaxy->planet[sourceIdx].ships)||
+     (ships<0)){
     fprintf(stderr,"Foul: move command from %s from %c to %C requested %d ships but only has %d ships. Command ignored\n",
 	    galaxy->player[playerIdx].name,
 	    galaxy->planet[sourceIdx].name,
@@ -324,7 +350,7 @@ int printGalaxy(galaxyType *galaxy){
   fprintf(logFile,"* Planet Update\n");
   for(i=0;i<galaxy->planetCount;i++){
     planetType *p=&(galaxy->planet[i]);
-    if(p->ownerIdx==NO_OWNER){
+    if(p->ownerIdx==NEUTRAL){
       owner="NEUTRAL";
     }else{
       owner=galaxy->player[p->ownerIdx].name;
@@ -367,17 +393,16 @@ int victory(galaxyType *galaxy){
 //
 // Print Planet Update
 //
-int printPlanetUpdate(galaxyType *galaxy,int playerIdx){
+void printPlanetUpdate(galaxyType *galaxy){
   int i,j,ships;
   char buf[MAX_BUFFER];
   char *owner;
-  sprintf(buf,"*Planet Update turn %d %s\n",
-	  galaxy->turn,galaxy->player[playerIdx].name);
+  sprintf(buf,"*Planet Update turn %d\n",
+	  galaxy->turn);
   fprintf(stderr,"%s",buf);
-  write(galaxy->player[playerIdx].to,buf,strlen(buf));
   for(i=0;i<galaxy->planetCount;i++){
     planetType *p=&(galaxy->planet[i]);
-    if(p->ownerIdx==NO_OWNER){
+    if(p->ownerIdx==NEUTRAL){
       owner="NEUTRAL";
     }else{
       owner=galaxy->player[p->ownerIdx].name;
@@ -386,12 +411,34 @@ int printPlanetUpdate(galaxyType *galaxy,int playerIdx){
             p->name, owner,p->x,p->y,p->ships, p->prod );
     fprintf(stderr,"%s",buf);
     fprintf(logFile,"%s",buf);
-    write(galaxy->player[playerIdx].to,buf,strlen(buf));
   }
   sprintf(buf,"*Planet Update Complete\n");
   fprintf(stderr,"%s",buf);
   fprintf(logFile,"%s",buf);
   fflush(logFile);
+}
+//
+// Write Planet Update
+//
+void writePlanetUpdate(galaxyType *galaxy,int playerIdx){
+  int i,j,ships;
+  char buf[MAX_BUFFER];
+  char *owner;
+  sprintf(buf,"*Planet Update turn %d %s\n",
+	  galaxy->turn,galaxy->player[playerIdx].name);
+  write(galaxy->player[playerIdx].to,buf,strlen(buf));
+  for(i=0;i<galaxy->planetCount;i++){
+    planetType *p=&(galaxy->planet[i]);
+    if(p->ownerIdx==NEUTRAL){
+      owner="NEUTRAL";
+    }else{
+      owner=galaxy->player[p->ownerIdx].name;
+    }
+    sprintf(buf,"Planet %c Owner %s X %d Y %d Ships %d Prod %d\n",
+            p->name, owner,p->x,p->y,p->ships, p->prod );
+    write(galaxy->player[playerIdx].to,buf,strlen(buf));
+  }
+  sprintf(buf,"*Planet Update Complete\n");
   write(galaxy->player[playerIdx].to,buf,strlen(buf));
 }
 //
@@ -449,8 +496,8 @@ int main (int argc, char *argv[]){
     exit(-1);
   }
 
-  if((logFile=fopen("mark","w"))==NULL){
-    printf("ERROR opening mark.log file\n");
+  if((logFile=fopen("galaxy.log","w"))==NULL){
+    printf("ERROR opening galaxy.log file\n");
   }
 
 #ifdef USE_X_WINDOWS
@@ -466,8 +513,9 @@ int main (int argc, char *argv[]){
     trimReturn(p->name);
   }
   do{
+    printPlanetUpdate(&galaxy);
     for(i=0;i<galaxy.playerCount;i++){
-      printPlanetUpdate(&galaxy,i);
+      writePlanetUpdate(&galaxy,i);
     }
     for(i=0;i<galaxy.playerCount;i++){
       readMoveCmds(&galaxy,i);
