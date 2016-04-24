@@ -25,7 +25,7 @@
 #define MAX_BUFFER  1000
 #define MAX_PLANETS  100
 #define MAX_EVENTS  5000
-#define NEUTRAL       -1
+#define NO_OWNER      -1
 
 FILE *logFile;
 
@@ -49,7 +49,6 @@ typedef struct {
   int planetCount;
   int eventCount;
   int waitForPrompt;
-  int seed;
   int turn;
   int max_x;
   int max_y;
