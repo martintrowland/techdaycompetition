@@ -1,4 +1,4 @@
-all: galaxy robot markbot
+all: galaxy robot
 
 src = $(wildcard *.c)
 obj = $(src:.c=.o)
@@ -14,7 +14,7 @@ galaxy: galaxy.o viewer.o
 robot: robot.o
 	$(CC) -g -o $@ $^ $(IFLAGS) $(LFLAGS)
 
-run: galaxy robot markbot
+run: galaxy robot
 	./galaxy 10 10 5 0 ./robot Nikhil ./robot Daniel ./robot Mark
 
 .PHONY: clean

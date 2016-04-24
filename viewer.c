@@ -17,7 +17,7 @@ GC gc;
 Display *dpy;
 XTextProperty textProperty;
 Colormap colormap;
-XColor black_col,white_col,red_col,green_col,blue_col,yellow_col;
+XColor black_col,white_col,red_col,green_col,blue_col,yellow_col,gray_col;
 XColor colorPixel[MAX_PLAYERS];
 const int NUM_COLORS=8;
 char colors[MAX_PLAYERS][10]={"#FF0000","#00FF00","#00FFFF","#0000FF",
@@ -28,6 +28,7 @@ char red_bits[] = "#FF0000";
 char green_bits[] = "#00FF00";
 char blue_bits[] = "#0000FF";
 char yellow_bits[] = "#FFFF00";
+char gray_bits[] = "#808080";
 Window w;
 Font font;
 
@@ -45,6 +46,7 @@ void createCanvas(galaxyType *galaxy)
   XParseColor(dpy, colormap, green_bits, &green_col);XAllocColor(dpy, colormap, &green_col);
   XParseColor(dpy, colormap, blue_bits, &blue_col);XAllocColor(dpy, colormap, &blue_col);
   XParseColor(dpy, colormap, yellow_bits, &yellow_col);XAllocColor(dpy, colormap, &yellow_col);
+  XParseColor(dpy, colormap, gray_bits, &gray_col);XAllocColor(dpy, colormap, &gray_col);
 
   int i;
   for(i=0;i<NUM_COLORS;i++){
@@ -85,7 +87,7 @@ void drawEvents(galaxyType *galaxy){
   int i,j;
   char s[MAX_BUFFER];
   for(i=0;i<galaxy->eventCount;i++){
-    int r=(galaxy->event[i].ships/5)+1;
+    int r=(galaxy->event[i].ships/10)+1;
     int srcx=galaxy->planet[galaxy->event[i].sourceIdx].x;
     int srcy=galaxy->planet[galaxy->event[i].sourceIdx].y;
     int destx=galaxy->planet[galaxy->event[i].targetIdx].x;
@@ -146,10 +148,10 @@ void drawGalaxy(galaxyType *galaxy){
   for(i=0; i<galaxy->planetCount; i++){
     int player=galaxy->planet[i].ownerIdx;
     XColor color;
-    if(player!=NO_OWNER){
+    if(player!=NEUTRAL){
       color=colorPixel[player%NUM_COLORS];
     }else{
-      color=yellow_col;
+      color=gray_col;
     }
     XSetForeground(dpy, gc, color.pixel);  
     XFillArc(dpy, w, gc,

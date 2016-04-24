@@ -25,7 +25,7 @@
 #define MAX_BUFFER  1000
 #define MAX_PLANETS  100
 #define MAX_EVENTS  5000
-#define NO_OWNER      -1
+#define NEUTRAL       -1
 
 FILE *logFile;
 

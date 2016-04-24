@@ -48,7 +48,7 @@ void processCommandLine(int argc, char *argv[],galaxyType *galaxy){
 int launchExectuables(galaxyType *galaxy) {
   int playerIdx;
   for(playerIdx=0;playerIdx<galaxy->playerCount;playerIdx++){
-    printf("exec [%s]\n", galaxy->player[playerIdx].exec);
+    printf("exec [%s]\n", (char *)galaxy->player[playerIdx].exec);
     playerType *p=&(galaxy->player[playerIdx]);
     if(pipe(p->in)) return -1;
     if(pipe(p->out)) return -1;
@@ -84,7 +84,7 @@ void createGalaxy(galaxyType *galaxy){
     p->y=(rand()%galaxy->max_y);
     p->name=(char)('A'+i);
     p->prod=(rand()%8+4);
-    p->ownerIdx=NO_OWNER;
+    p->ownerIdx=NEUTRAL;
     p->ships=50;
     if(DEBUG){
       printf("planet %c %d %d\n",galaxy->planet[i].name,
@@ -188,7 +188,7 @@ void simulateBattle(galaxyType *galaxy){
       --attackerShips;
     }
   }
-  if((i=galaxy->planet[galaxy->event[0].targetIdx].ownerIdx)!=NO_OWNER){
+  if((i=galaxy->planet[galaxy->event[0].targetIdx].ownerIdx)!=NEUTRAL){
     name=galaxy->player[galaxy->planet[galaxy->event[0].targetIdx].ownerIdx].name;
   }else{
     name="NEUTRAL";
@@ -324,7 +324,7 @@ int printGalaxy(galaxyType *galaxy){
   fprintf(logFile,"* Planet Update\n");
   for(i=0;i<galaxy->planetCount;i++){
     planetType *p=&(galaxy->planet[i]);
-    if(p->ownerIdx==NO_OWNER){
+    if(p->ownerIdx==NEUTRAL){
       owner="NEUTRAL";
     }else{
       owner=galaxy->player[p->ownerIdx].name;
@@ -377,7 +377,7 @@ int printPlanetUpdate(galaxyType *galaxy,int playerIdx){
   write(galaxy->player[playerIdx].to,buf,strlen(buf));
   for(i=0;i<galaxy->planetCount;i++){
     planetType *p=&(galaxy->planet[i]);
-    if(p->ownerIdx==NO_OWNER){
+    if(p->ownerIdx==NEUTRAL){
       owner="NEUTRAL";
     }else{
       owner=galaxy->player[p->ownerIdx].name;
